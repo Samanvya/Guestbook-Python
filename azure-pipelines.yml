@@ -1,0 +1,65 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+variables:
+  DockerImageName: 'valued-visitor-246705/guestbook'
+
+steps:
+- task: Docker@0
+  displayName: 'Build image backend'
+  inputs:
+    containerregistrytype: 'Container Registry'
+    dockerRegistryConnection: 'gcr-tutorial'
+    imageName: '$(DockerImageName):backend$(Build.BuildId)'
+- task: Docker@0
+  displayName: 'Publish image backend'
+  inputs:
+    containerregistrytype: 'Container Registry'
+    dockerRegistryConnection: 'gcr-tutorial'
+    action: 'Push an image'
+    imageName: '$(DockerImageName):backend$(Build.BuildId)'
+- task: Docker@0
+  displayName: 'Build imagefrontend'
+  inputs:
+    containerregistrytype: 'Container Registry'
+    dockerRegistryConnection: 'gcr-tutorial'
+    Dockerfile: src/frontend/Dockerfile
+    imageName: '$(DockerImageName):frontend$(Build.BuildId)'
+- task: Docker@0
+  displayName: 'Publish image frontend'
+  inputs:
+    containerregistrytype: 'Container Registry'
+    dockerRegistryConnection: 'gcr-tutorial'
+    action: 'Push an image'
+    imageName: '$(DockerImageName):frontend$(Build.BuildId)'
+- task: CmdLine@1
+  displayName: 'Lock image version in frontend-deployment.yaml'
+  inputs:
+    filename: /bin/bash
+    arguments: '-c "awk ''{gsub(\"backendimage\", \"gcr.io/$(DockerImageName):backend$(Build.BuildId)\", $0); print}'' kubernetes-manifests/guestbook-backend.deployment.yaml > $(build.artifactstagingdirectory)/guestbook-backend.deployment.yaml"'
+- task: CmdLine@1
+  displayName: 'Lock image version in frontend-deployment.yaml'
+  inputs:
+    filename: /bin/bash
+    arguments: '-c "awk ''{gsub(\"frontendimage\", \"gcr.io/$(DockerImageName):frontend$(Build.BuildId)\", $0); print}'' kubernetes-manifests/guestbook-frontend.deployment.yaml > $(build.artifactstagingdirectory)/guestbook-frontend.deployment.yaml"'
+- task: CopyFiles@2
+  displayName: 'Copy Files to: $build.artifactstagingdirectory'
+  inputs:
+    SourceFolder: 'kubernetes-manifests'
+    Contents: '*.service.yaml'
+    TargetFolder: '$(build.artifactstagingdirectory)'
+- task: CopyFiles@2
+  displayName: 'Copy Files to: $build.artifactstagingdirectory'
+  inputs:
+    SourceFolder: 'kubernetes-manifests'
+    Contents: 'guestbook-mongodb.deployment.yaml'
+    TargetFolder: '$(build.artifactstagingdirectory)'
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact'
+  inputs:
+    PathtoPublish: '$(build.artifactstagingdirectory)'

@@ -1,0 +1,26 @@
+.vscode/settings.json
+
+terraform.tfplan
+terraform.tfstate
+./*.tfstate
+.terraform/
+in.*
+*in
+*.in
+*.bakup
+*.log
+*.bak
+.*.swp
+.idea
+*.iml
+*.test
+*.iml
+*.in
+*.pub
+# Test exclusions
+!command/testdata/**/*.tfstate
+!command/testdata/**/.terraform/
+\env\*
+/env/*
+
+
